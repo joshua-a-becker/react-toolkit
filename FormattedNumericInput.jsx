@@ -1,13 +1,19 @@
 import React from "react";
-import SocialExposure from "./SocialExposure.jsx";
 
 var countDecimals = function (value) {    		
-    return value.toString().split(".")[1]===undefined ? 0 : value.toString().split(".")[1].length || 0; 
+	//source: https://stackoverflow.com/questions/17369098/simplest-way-of-getting-the-number-of-decimals-in-a-number-in-javascript
+  return value.toString().split(".")[1]===undefined ? 0 : value.toString().split(".")[1].length || 0; 
 }
 
 function number_format(number, decimals, dec_point, thousands_sep) {  
-  decimals = decimals || countDecimals(number);
+  
+	// modified from original to allow variable decimal length inputs, 
+	// which requires preserving the decimal in "1." and "1.0"
+	// this assumes a STRING input (so that 1.0 != 1)
+	
+	decimals = decimals || countDecimals(number);
 	const addDecimal = number.includes(".") && decimals==0;
+	
 	// source: https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
 	var n = !isFinite(+number) ? 0 : +number, 
 			prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
@@ -31,49 +37,56 @@ function number_format(number, decimals, dec_point, thousands_sep) {
 }
 	
 	
-export default class FormattedNumericInput extends React.Component {
+export default class NumericTaskResponse extends React.Component {
 		
 	state={formValid: false, inputValue: ""}
   
 	
 	handleChange = event => {
 	
+	  // note cursor location in case of re-render due to formatting
 		const cursorLocation = event.currentTarget.selectionStart;
-		console.log(cursorLocation)
-	  const el = event.currentTarget;
+		
+		// get element because event is not persistent
+	  const el = event.currentTarget;		
+		
 		// remove all commas and spaces from number for processing
 		const formValue  = event.currentTarget.value.replace(/\s/g, '').replace(/,\s?/g, "");
 		
-    this.setState({formValid : !isNaN(formValue ) && formValue  != ""})
-		this.props.player.stage.set("formValue ", !isNaN(formValue ) ? formValue  : "")
+		// set element state for form validity
+    this.setState({formValid : !isNaN(formValue ) && formValue  != ""})		
 		
-		
-		if(!isNaN(el.value) && el.value != "") {
-			//format number and, the length has changed, advance cursor
+		// either format the number and adjust the cursor
+		// or return the string as-is
+		// use Number() because isNaN() alone returns false positives
+		if( !isNaN(Number(formValue )) && el.value != "" ) {
+			//format number and, if necessary, advance cursor
 			const newText = number_format(formValue )
 			const cursorAdvance = newText.length - el.value.length;
-			
-			// if a valid number, set formatted value and cursor location
+
 			this.setState(
 				{inputValue : newText},
 				()=>{el.setSelectionRange(cursorLocation+cursorAdvance,cursorLocation+cursorAdvance)}
 			)
 		} else {
-			// if not a valid number, set as input
+			console.log("not valid?");
+			console.log(Number(formValue ));		
+			console.log(!isNaN(Number(formValue )));		
+			console.log(el.value != "");
+			console.log(!isNaN(Number(formValue )) && el.value != "");
 			this.setState({inputValue : formValue })
 		} 
 		
 		// add commas back in for display, only if its a valid number		
-		
-		console.log(el.selectionStart);
+				
   };
 
-  
   render() {
-		
-    const formValue = this.state.inputValue.replace(/\s/g, '').replace(/,\s?/g, "");
+    const formValue  = this.state.inputValue.replace(/\s/g, '').replace(/,\s?/g, "");
 		const isValid = !isNaN(formValue );
     return (
+      <div className="pt-form-content">
+				<strong>Your Answer:&nbsp;</strong>
 				<input 
 							type="text" 
 							name="username" 
@@ -85,5 +98,6 @@ export default class FormattedNumericInput extends React.Component {
 						{isValid ? "" : <span className="validateInput">You must enter a number</span>}
       </div>
     );
-	}
+  }
+
 }
